@@ -1,0 +1,71 @@
+name: Demo failure scenarios
+
+on:
+  workflow_dispatch:
+    inputs:
+      scenario:
+        description: "Choose a real CI/CD failure to generate"
+        required: true
+        type: choice
+        options:
+          - docker-build
+          - dependency-conflict
+          - test-failure
+          - deployment-config
+
+permissions:
+  contents: read
+
+jobs:
+  docker-build-failure:
+    if: inputs.scenario == 'docker-build'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build Docker image (intentionally fails)
+        run: docker build -t demo-missing-file .
+
+  dependency-resolution-failure:
+    if: inputs.scenario == 'dependency-conflict'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install incompatible pinned dependencies (intentionally fails)
+        run: python -m pip install -r scenarios/dependency-conflict/requirements.txt
+
+  automated-test-failure:
+    if: inputs.scenario == 'test-failure'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Run regression test (intentionally fails)
+        run: python -m pytest -q scenarios/test-failure/test_regression.py
+
+  deployment-configuration-failure:
+    if: inputs.scenario == 'deployment-config'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate deployment configuration (intentionally fails)
+        shell: bash
+        run: |
+          if [ -z "${DEPLOY_ENV:-}" ]; then
+            echo "::error title=Missing deployment configuration::Required variable DEPLOY_ENV is not set."
+            echo "Deployment aborted: DEPLOY_ENV is required (expected dev, staging, or production)."
+            exit 1
+          fi
+          echo "Deployment environment: ${DEPLOY_ENV}"

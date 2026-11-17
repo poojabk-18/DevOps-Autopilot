@@ -1,0 +1,4 @@
+# Intentional resolver conflict for the demo:
+# requests 2.25.0 requires urllib3<1.27, but urllib3 is pinned to 2.0.0.
+requests==2.25.0
+urllib3==2.0.0
